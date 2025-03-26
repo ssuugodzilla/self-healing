@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>自洽计划-玛尼堆</title>
+    <style>
+        body {
+            background: #F5A3C7;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 修正后的花瓣样式 */
+        .petal {
+            position: absolute;
+            width: 18px;
+            height: 30px;
+            background: linear-gradient(145deg, #FFB6C180, #FFFFFFB3);
+            clip-path: path('M9 0C13.5 0 18 6 18 15C18 24 9 30 9 30C9 30 0 24 0 15C0 6 4.5 0 9 0Z');
+            animation: fall 8s linear infinite;
+            transform-origin: 50% 100%;
+            opacity: 0.8;
+        }
+
+        @keyframes fall {
+            0% { 
+                transform: translateY(-10vh) rotate(0deg);
+                opacity: 0.8;
+            }
+            100% { 
+                transform: translateY(110vh) rotate(720deg);
+                opacity: 0.3;
+            }
+        }
+
+        /* 玛尼堆容器 */
+        #mani-stone {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -120%);
+            z-index: 1;
+        }
+
+        .stone {
+            position: absolute;
+            width: 60px;
+            height: 40px;
+            background: #8D6E63;
+            clip-path: polygon(
+                0 25%, 10% 0, 30% 10%, 45% 0,
+                65% 15%, 85% 5%, 100% 25%,
+                90% 60%, 70% 100%, 30% 90%, 0 70%
+            );
+            border-radius: 8px;
+            box-shadow: 3px 3px 8px rgba(0,0,0,0.2);
+        }
+
+        .stone[data-color="1"] { background: #A9A9A9; }
+        .stone[data-color="2"] { background: #6D4C41; }
+        .stone[data-color="3"] { background: #BCAAA4; }
+
+        .stone-text {
+            position: absolute;
+            width: 90%;
+            height: 60%;
+            top: 20%;
+            left: 5%;
+            color: rgba(255,255,255,0.9);
+            font: 14px '楷体', cursive;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .scroll-text {
+            animation: scroll 8s linear infinite;
+            display: inline-block;
+            padding-left: 100%;
+        }
+
+        @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* 语音交互界面 */
+        .voice-ui {
+            position: fixed;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 2;
+        }
+
+        #mic-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #FFFFFF;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background 0.3s;
+        }
+
+        #mic-btn:active {
+            background: #8EC5D1 !important;
+        }
+
+        #text-input {
+            width: 300px;
+            padding: 15px;
+            border: 2px solid #95C480;
+            border-radius: 25px;
+            font-size: 16px;
+            background: rgba(255,255,255,0.9);
+        }
+    </style>
+</head>
+<body>
+    <div id="mani-stone"></div>
+
+    <div class="voice-ui">
+        <button id="mic-btn">🎤</button>
+        <h3 style="color:#636363;">自我祝颂</h3>
+        <input type="text" id="text-input" placeholder="说出或写下您的祝福...">
+    </div>
+
+    <script>
+        // 花瓣生成（确保DOM加载后执行）
+        document.addEventListener('DOMContentLoaded', function() {
+            for(let i=0; i<25; i++) {
+                const petal = document.createElement('div');
+                petal.className = 'petal';
+                petal.style.width = (15 + Math.random()*8) + 'px';
+                petal.style.height = (25 + Math.random()*15) + 'px';
+                petal.style.left = Math.random()*100 + 'vw';
+                petal.style.animationDelay = Math.random()*10 + 's';
+                petal.style.transform = `skew(${Math.random()*20-10}deg)`;
+                document.body.appendChild(petal);
+            }
+        });
+
+        // 语音识别兼容处理
+        let recognition;
+        if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'zh-CN';
+            recognition.continuous = false;
+        } else {
+            document.getElementById('mic-btn').disabled = true;
+            console.warn('当前浏览器不支持语音识别');
+        }
+
+        let stoneCount = 0;
+
+        // 麦克风交互
+        document.getElementById('mic-btn').addEventListener('mousedown', () => {
+            if(recognition) recognition.start();
+        });
+
+        if(recognition) {
+            recognition.onresult = (e) => {
+                const transcript = e.results[0][0].transcript;
+                document.getElementById('text-input').value = transcript;
+                addStone(transcript);
+            }
+        }
+
+        // 输入框交互
+        document.getElementById('text-input').addEventListener('keypress', (e) => {
+            if(e.key === 'Enter') {
+                addStone(e.target.value);
+                e.target.value = '';
+            }
+        });
+
+        // 石块生成函数
+        function addStone(text) {
+            if(!text) return;
+
+            stoneCount++;
+            const stone = document.createElement('div');
+            stone.className = 'stone';
+            
+            const colorType = Math.floor(Math.random()*3)+1;
+            stone.setAttribute('data-color', colorType);
+
+            stone.style.left = (Math.random()*80-40) + 'px';
+            stone.style.top = -(stoneCount*30) + 'px';
+            stone.style.transform = `
+                rotate(${Math.random()*25-12}deg)
+                scale(${0.8 + Math.random()*0.4})
+            `;
+
+            const stoneText = document.createElement('div');
+            stoneText.className = 'stone-text';
+            const displayText = text.slice(0,4);
+            
+            if(text.length > 4) {
+                const scrollingText = document.createElement('div');
+                scrollingText.className = 'scroll-text';
+                scrollingText.textContent = text;
+                stoneText.appendChild(scrollingText);
+            } else {
+                stoneText.style.textAlign = 'center';
+                stoneText.textContent = displayText;
+            }
+            
+            stone.appendChild(stoneText);
+            document.getElementById('mani-stone').appendChild(stone);
+        }
+    </script>
+</body>
+</html>
